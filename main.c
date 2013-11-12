@@ -9,29 +9,31 @@
 
 #define BTN       BIT3
 
-void delay(int microsecs);
+/**
+ * Simple delay function using busy cycles
+ * \param[in]   micros  Amount to wait (in kcycles. not microseconds)
+ */
+void delay(int micro) {
+    unsigned int count;
+    for (count=0; count<micro * 1000; count++);
+}
 
 void main(void) {
     uint8_t flash;
     WDTCTL = WDTPW + WDTHOLD;
 
     P1OUT = 0;
-    P1DIR |= I1 + I2;  // LED pins to outputs, BTN is
+    P1DIR |= I1 + I2;  //Pins going to L293DNE to outputs, rest remain as is
 
     for (;;) {
-
         for (flash=0; flash<7; flash++) {
-            P1OUT &= ~I2;
-            P1OUT |= I1;    // red LED on
-            delay(1000);             // call delay function
-            P1OUT &= ~I1;   // red LED off
-            P1OUT |= I2;    // red LED on
-            delay(1000);             // delay again
+            P1OUT &= ~I2;   //disable I2
+            P1OUT |= I1;    //enable I1
+            delay(100);
+            P1OUT &= ~I1;   //disable I1
+            P1OUT |= I2;    //enable I2
+            delay(100);
         }
     }
-} // main
+}
 
-void delay(int micro) {
-    unsigned int count;
-    for (count=0; count<micro * 100; count++);
-} // delay
