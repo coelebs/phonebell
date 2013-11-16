@@ -4,6 +4,8 @@
 #define red_LED     BIT0
 #define grn_LED     BIT6
 
+#define DELAY       200
+
 #define BUTTON      BIT2
 #define ENABLE      BIT3
 #define I1	        BIT4
@@ -20,19 +22,18 @@ void delay(int micro) {
 }
 
 int main(void) {
-    uint8_t flash = 1, input = 0;
+    uint8_t input = 0;
     WDTCTL = WDTPW + WDTHOLD;
 
     P1OUT = 0;
 
-    //Pins going to L293DNE to outputs, rest remain as is
-    P1DIR |= I1 + I2 + ENABLE;  
-    P1DIR &= ~BUTTON;
-    P1OUT &= ~BUTTON;
-    P1REN |= BUTTON;
+    P1DIR |= I1 + I2 + ENABLE;  //Pins going to L293DNE to outputs, rest remain as is
+    P1DIR &= ~BUTTON;           //Set direction to INPUT for button
+    P1REN |= BUTTON;            //Enable pullup/pulldown for button
+    P1OUT |= BUTTON;            //Select pullup 
      
     while(1) {
-        input = P1IN & BUTTON;
+        input = !(P1IN & BUTTON);
 
         if(input) {
             P1OUT |= ENABLE;
@@ -42,10 +43,10 @@ int main(void) {
 
         P1OUT &= ~I2;   //disable I2
         P1OUT |= I1;    //enable I1
-        delay(5);
+        delay(DELAY);
         P1OUT &= ~I1;   //disable I1
         P1OUT |= I2;    //enable I2
-        delay(5);
+        delay(DELAY);
 
     }
     return 1;
