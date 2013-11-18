@@ -1,6 +1,6 @@
 CC=msp430-gcc
-#CFLAGS=-Os -Wall -g -O0 -mmcu=msp430g2553
-CFLAGS=-Os -Wall -g -O0 -mmcu=msp430g2452
+CFLAGS=-Os -Wall -g -O0 -mmcu=msp430g2553
+#CFLAGS=-Os -Wall -g -O0 -mmcu=msp430g2452 
 OBJS=$(v).o
 
 main: main.c

@@ -1,4 +1,4 @@
-#include <msp430g2211.h>
+#include <msp430g2553.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -33,6 +33,14 @@ __interrupt void Port_1(void) {
     P1IFG &= ~BUTTON;           //Clear the Interrupt FlaG
 }
 
+/**
+ * Simple interrupt function to toggle input pins of the L293DNE
+ */
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A(void) {
+    P1OUT ^= I1 + I2;
+}
+
 int main(void) {
     WDTCTL = WDTPW + WDTHOLD;
 
@@ -48,14 +56,19 @@ int main(void) {
     P1IES |= BUTTON;            //Select falling edge
     P1IFG &= ~BUTTON;           //Clear the Interupt FlaG
 
+    //Select SMCLK (tassel_2)
+    //Select UP mode, so the number counts up (MC_1)
+    TACTL = TASSEL_2 + MC_1;
+    CCTL0 = CCIE;               //Enable CCIE bit in the CCTL0 register ???
+    CCR0 = 65535;               //SMCLK/65535 =~= 15.25hz 
+
+    //Initial state of pins (inverse of each other) allows easy toggling
     P1OUT |= I1;                //enable I1
     P1OUT &= ~I2;               //disable I2
 
     _BIS_SR(GIE);               //Enable Global Interrupt Enable;
 
     while(1) {
-        P1OUT ^= I1 + I2;
-        delay(10);
     }
 
     return 1;
