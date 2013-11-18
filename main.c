@@ -30,6 +30,7 @@ void delay(int micro) {
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void) {
     P1OUT ^= ENABLE;            //Toggle enable port of the L293DNE
+    CCTL0 ^= CCIE;              //Toggle CCIE bit in the CCTL0 register ???
     P1IFG &= ~BUTTON;           //Clear the Interrupt FlaG
 }
 
@@ -59,7 +60,6 @@ int main(void) {
     //Select SMCLK (tassel_2)
     //Select UP mode, so the number counts up (MC_1)
     TACTL = TASSEL_2 + MC_1;
-    CCTL0 = CCIE;               //Enable CCIE bit in the CCTL0 register ???
     CCR0 = 65535;               //SMCLK/65535 =~= 15.25hz 
 
     //Initial state of pins (inverse of each other) allows easy toggling
