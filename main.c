@@ -1,18 +1,9 @@
-#include <msp430g2553.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-#define red_LED     BIT0
-#define grn_LED     BIT6
-
-#define DELAY       200
+#include <msp430.h>
 
 #define BUTTON      BIT2
 #define ENABLE      BIT3
-#define I1	        BIT4
-#define I2	        BIT5
-
-bool input = true;
+#define I1          BIT4
+#define I2          BIT5
 
 /**
  * Simple delay function using busy cycles
@@ -20,7 +11,7 @@ bool input = true;
  */
 void delay(int micro) {
     unsigned int count;
-    for (count=0; count<micro * 1000; count++);
+    for (count=0; count<micro * 1000u; count++);
 }
 
 /**
@@ -30,7 +21,7 @@ void delay(int micro) {
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void) {
     P1OUT ^= ENABLE;            //Toggle enable port of the L293DNE
-    CCTL0 ^= CCIE;              //Toggle CCIE bit in the CCTL0 register ???
+    TACCTL0 ^= CCIE;              //Toggle CCIE bit in the CCTL0 register ???
     P1IFG &= ~BUTTON;           //Clear the Interrupt FlaG
 }
 
@@ -45,10 +36,8 @@ __interrupt void Timer_A(void) {
 int main(void) {
     WDTCTL = WDTPW + WDTHOLD;
 
-    P1OUT &= 0;
-
     //Pins going to L293DNE to outputs, rest remain as is
-    P1DIR |= grn_LED + I1 + I2 + ENABLE;
+    P1DIR |= I1 + I2 + ENABLE;
     P1DIR &= ~BUTTON;           //Set direction to INPUT for button
     P1REN |= BUTTON;            //Enable pullup/pulldown for button
     P1OUT |= BUTTON;            //Select pullup 
@@ -57,10 +46,11 @@ int main(void) {
     P1IES |= BUTTON;            //Select falling edge
     P1IFG &= ~BUTTON;           //Clear the Interupt FlaG
 
-    //Select SMCLK (tassel_2)
-    //Select UP mode, so the number counts up (MC_1)
-    TACTL = TASSEL_2 + MC_1;
-    CCR0 = 65535;               //SMCLK/65535 =~= 15.25hz 
+    TACTL |= TASSEL_2;          //Select SMCLK (tassel_2)
+    TACTL |= MC_2;              //Select continous, count until 0xFFFF
+    TACTL |= ID_2;              //Select a clock divider of 4
+    //TACTL |= MC_1;            //Select up, count until TACCR0
+    //TACCR0 = 30000;           //SMCLK/65535 =~= 15.25hz 
 
     //Initial state of pins (inverse of each other) allows easy toggling
     P1OUT |= I1;                //enable I1
@@ -68,8 +58,7 @@ int main(void) {
 
     _BIS_SR(GIE);               //Enable Global Interrupt Enable;
 
-    while(1) {
-    }
+    while(1) { }
 
     return 1;
 }
