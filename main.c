@@ -1,9 +1,17 @@
-#include <msp430.h>
+#include <msp430g2553.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #define BUTTON      BIT2
 #define ENABLE      BIT3
 #define I1          BIT4
 #define I2          BIT5
+
+#define LED1        BIT0
+#define LED2        BIT6
+
+static uint32_t seconds;
+static bool half;
 
 /**
  * Simple delay function using busy cycles
@@ -21,7 +29,8 @@ void delay(int micro) {
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void) {
     P1OUT ^= ENABLE;            //Toggle enable port of the L293DNE
-    TACCTL0 ^= CCIE;              //Toggle CCIE bit in the CCTL0 register ???
+    TACCTL0 ^= CCIE;            //Toggle CCIE bit in the CCTL0 register ???
+
     P1IFG &= ~BUTTON;           //Clear the Interrupt FlaG
 }
 
@@ -31,13 +40,35 @@ __interrupt void Port_1(void) {
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A(void) {
     P1OUT ^= I1 + I2;
+
+    TA0CCTL0 &= ~CCIFG;
+}
+
+/**
+ * Simple interrupt function to toggle input pins of the L293DNE
+ */
+#pragma vector=TIMER1_A0_VECTOR
+__interrupt void IncrementClock(void) {
+    seconds++;
+    if(seconds % 10 == 0)       //Division so epic slow but debug
+    {
+        P1OUT ^= LED2;
+    }
+
+    TA1CCTL0 &= ~CCIFG;
 }
 
 int main(void) {
     WDTCTL = WDTPW + WDTHOLD;
 
+    seconds = 0;
+    half = false;
+
     //Pins going to L293DNE to outputs, rest remain as is
-    P1DIR |= I1 + I2 + ENABLE;
+    P1DIR |= I1 + I2 + ENABLE + LED1 + LED2;
+
+    P1OUT &= ~LED1;
+    
     P1DIR &= ~BUTTON;           //Set direction to INPUT for button
     P1REN |= BUTTON;            //Enable pullup/pulldown for button
     P1OUT |= BUTTON;            //Select pullup 
@@ -46,15 +77,23 @@ int main(void) {
     P1IES |= BUTTON;            //Select falling edge
     P1IFG &= ~BUTTON;           //Clear the Interupt FlaG
 
-    TACTL |= TASSEL_2;          //Select SMCLK (tassel_2)
-    TACTL |= MC_2;              //Select continous, count until 0xFFFF
-    TACTL |= ID_2;              //Select a clock divider of 4
-    //TACTL |= MC_1;            //Select up, count until TACCR0
-    //TACCR0 = 30000;           //SMCLK/65535 =~= 15.25hz 
+    TA0CTL |= TASSEL_2;         //Select SMCLK (tassel_2)
+    TA0CTL |= MC_2;             //Select continous, count until TACCRx
+    TA0CTL |= ID_1;             //Select a clock divider of 8
+
+    TA1CTL |= TASSEL_2;         //Select SMCLK (tassel_2)
+    TA1CTL |= MC_1;             //Select continous, count until TACCRx
+    TA1CTL |= ID_1;             //Select a clock divider of 4
+
+    TA1CCR0= 50000;
+
+    TA0CCTL0 |= OUTMOD_7;       //Select OUTMODE? and don't enable interrupt yet
+    TA1CCTL0 |= CCIE + OUTMOD_7;//Select OUTMODE? and start counting immediate  
 
     //Initial state of pins (inverse of each other) allows easy toggling
     P1OUT |= I1;                //enable I1
     P1OUT &= ~I2;               //disable I2
+    P1OUT &= ~ENABLE;
 
     _BIS_SR(GIE);               //Enable Global Interrupt Enable;
 
