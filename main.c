@@ -5,7 +5,6 @@
 #define BUTTON      BIT2
 #define ENABLE      BIT3
 #define I1          BIT4
-#define I2          BIT5
 
 #define LED1        BIT0
 #define LED2        BIT6
@@ -29,7 +28,7 @@ void delay(int micro) {
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void) {
     P1OUT ^= ENABLE;            //Toggle enable port of the L293DNE
-    TACCTL0 ^= CCIE;            //Toggle CCIE bit in the CCTL0 register ???
+    TA0CCTL0 ^= CCIE;            //Toggle CCIE bit in the CCTL0 register ???
 
     P1IFG &= ~BUTTON;           //Clear the Interrupt FlaG
 }
@@ -39,7 +38,7 @@ __interrupt void Port_1(void) {
  */
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A(void) {
-    P1OUT ^= I1 + I2;
+    P1OUT ^= I1;
 
     TA0CCTL0 &= ~CCIFG;
 }
@@ -50,10 +49,6 @@ __interrupt void Timer_A(void) {
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void IncrementClock(void) {
     seconds++;
-    if(seconds % 10 == 0)       //Division so epic slow but debug
-    {
-        P1OUT ^= LED2;
-    }
 
     TA1CCTL0 &= ~CCIFG;
 }
@@ -65,10 +60,8 @@ int main(void) {
     half = false;
 
     //Pins going to L293DNE to outputs, rest remain as is
-    P1DIR |= I1 + I2 + ENABLE + LED1 + LED2;
+    P1DIR |= I1 + ENABLE;
 
-    P1OUT &= ~LED1;
-    
     P1DIR &= ~BUTTON;           //Set direction to INPUT for button
     P1REN |= BUTTON;            //Enable pullup/pulldown for button
     P1OUT |= BUTTON;            //Select pullup 
@@ -92,7 +85,6 @@ int main(void) {
 
     //Initial state of pins (inverse of each other) allows easy toggling
     P1OUT |= I1;                //enable I1
-    P1OUT &= ~I2;               //disable I2
     P1OUT &= ~ENABLE;
 
     _BIS_SR(GIE);               //Enable Global Interrupt Enable;
